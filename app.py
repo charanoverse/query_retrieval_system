@@ -6,9 +6,9 @@ import os
 import requests
 import tempfile
 
-from pdf_utils.pdf_parser import parse_pdf_to_chunks
+from pdf_utils.pdf_parser import extract_text_chunks
 from pdf_utils.faiss_indexer import build_faiss_index, load_faiss_index
-from pipeline import run_pipeline
+from pipeline import run_chain
 
 # Load API_KEY from .env or environment
 load_dotenv()
@@ -55,7 +55,7 @@ async def run_hackrx_pipeline(request: Request, query: QueryRequest):
 
     # 🧩 3. Parse PDF and chunk
     try:
-        chunks = parse_pdf_to_chunks(pdf_path)
+        chunks = extract_text_chunks(pdf_path)
         build_faiss_index(chunks)  # saves to vectorstore/faiss_index.pkl
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF parsing/indexing failed: {e}")
@@ -65,7 +65,7 @@ async def run_hackrx_pipeline(request: Request, query: QueryRequest):
         index = load_faiss_index()
         answers = []
         for question in query.questions:
-            answer = run_pipeline(question, chunks, index)
+            answer = run_chain(question, chunks, index)
             answers.append(answer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Pipeline failed: {e}")
